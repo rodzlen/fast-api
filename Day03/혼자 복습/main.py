@@ -45,6 +45,13 @@ class UserRegister(BaseModel):
     password : str
     email : str
 
+class UserLogin(BaseModel):
+    email : str
+    password : str
+
+class Token(BaseModel):
+    access_token:str
+    token_type : str
 
 async def create_user(user:UserRegister):
     async with AsyncSessionLocal() as session:
@@ -104,7 +111,15 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post('/register')
-async def register(user : UserRegister,db:AsyncSessionLocal= Depends(get_db)):
+async def register(user : UserRegister):
     created_user = await create_user(user)
     return {"success": True, "name":created_user.name}
 
+@app.post('/login')
+async def login(user:UserLogin, db:AsyncSession =Depends(get_db)):
+    result = await db.execute(select(User).filter(User.email == user.email))
+    db_user = result.scalars().first()
+    if not db_user or not verified_password(user.password, db_user.password):
+        raise HTTPException(status_code=400, detail='없는 이메일 이거나 비밀번호입니다.')
+    access_token = create_access_token(data={"sub":user.email})
+    return {"access_token" : access_token, "token_typ": "bearer"}
