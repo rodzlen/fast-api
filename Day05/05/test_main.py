@@ -39,15 +39,21 @@ def setup_test_data():
     db.close()
     Base.metadata.drop_all(bind=engine)
 
-def test_get_products():
+def test_get_products(setup_test_data):
     response = client.get('/products')
     assert response.status_code == 200
+    assert len(response.json()) == 2
 
-def test_post_product():
+
+def test_get_product(setup_test_data):
+    response = client.get('/products/1')
+    db= TestingSessionLocal()
+    product = db.query(Product).get(1)
+    assert response.json() == {"id":product.id, "name":product.name, "price":product.price}
+    assert response.status_code ==200
+    assert response.json() == {'id':1,'name':'a', "price":20}
+
+def test_post_product(setup_test_data):
     response = client.post('/products', json={'name':"zzxc","price":120})
     assert response.status_code == 200
-    assert response.json() == {'id':7, 'name':"zzxc","price":120}
-def test_get_product():
-    response = client.get('/products/1')
-    assert response.status_code ==200
-    assert response.json() == {'id':1,'name':'zzxc', "price":120}
+    assert response.json() == {'id':3, 'name':"zzxc","price":120}
